@@ -133,7 +133,7 @@ func (sc *SessionContext) receiveLoop() {
 			go sc.sendLoop()
 		default:
 			fmt.Printf("ReceiveMessages: unhandled packet type: %T", pkt)
-			return
+			continue
 		}
 		// TODO: Implement the echo ping pong
 	}
