@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+	"encoding/hex"
+	"encoding/json"
 )
 
 func serializeMsgPkt(mp messagePacket) *bytes.Buffer {
@@ -67,6 +69,36 @@ func serializeAudioMsg(am AudioMessage) *bytes.Buffer {
 	serializePadding(buf)
 
 	return buf
+}
+
+func serializeFileMsg(fm FileMessage) *bytes.Buffer {
+    buf := new(bytes.Buffer)
+    serializeMsgType(buf, FILEMESSAGE)
+    
+    // Create JSON payload
+    jsonData := map[string]interface{}{
+        "b": hex.EncodeToString(fm.blobID[:]),
+        "k": hex.EncodeToString(fm.encryptionKey[:]),
+        "m": fm.mimeType,
+        "n": fm.filename,
+        "s": fm.size,
+    }
+    
+    // Add thumbnail blob ID if present
+    if fm.thumbnailBlobID != [16]byte{} {
+        jsonData["i"] = hex.EncodeToString(fm.thumbnailBlobID[:])
+    }
+    
+    // Add extra data if present
+    if len(fm.extra) > 0 {
+        jsonData["x"] = fm.extra
+    }
+    
+    jsonBytes, _ := json.Marshal(jsonData)
+    buf.Write(jsonBytes)
+    serializePadding(buf)
+    
+    return buf
 }
 
 func serializeGroupTextMsg(gtm GroupTextMessage) *bytes.Buffer {
@@ -238,13 +270,33 @@ func serializeAuthPkt(ap authPacket) *bytes.Buffer {
 	return buf
 }
 
+/* my fucked up version, ignore this for now
 func serializeTypingNotification(tn TypingNotificationMessage) *bytes.Buffer {
 
 	buf := new(bytes.Buffer)
 
+	serializeMsgType(buf, TYPINGNOTIFICATION)
+	serializeIDString(buf, tn.sender)
+	serializeIDString(buf, tn.recipient)
+	serializeMsgID(buf, tn.id)
+	serializeTime(buf, tn.time)
+	//serializeMsgFlags(buf, mp.Flags)
+	// The three following bytes are unused
+	serializeUnusedBytes(buf)
+	//serializePubNick(buf, tn.pubNick)
+
 	serializeByte(buf, tn.OnOff)
+	//serializePadding(buf)
 
 	return buf
+} */
+
+func serializeTypingNotification(tn TypingNotificationMessage) *bytes.Buffer {
+    buf := new(bytes.Buffer)
+    serializeMsgType(buf, TYPINGNOTIFICATION)
+    serializeByte(buf, tn.OnOff)
+    serializePadding(buf)
+    return buf
 }
 
 func serializerPanicHandler(context string, i interface{}) error {

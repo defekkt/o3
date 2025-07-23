@@ -222,6 +222,19 @@ func (sc *SessionContext) SendAudioMessage(recipient string, filename string, se
 	return nil
 }
 
+// SendTypingNotification sends a typing notification to the specified ID.
+func (sc *SessionContext) SendTypingNotification(recipient string, onOff bool, sendMsgChan chan<- Message) (TypingNotificationMessage, error) {
+	// build a message
+	tn, err := NewTypingNotificationMessage(sc, recipient, onOff)
+	if err != nil {
+		return TypingNotificationMessage{}, err
+	}
+
+	sendMsgChan <- tn
+
+	return tn, nil
+}
+
 // SendGroupTextMessage Sends a text message to all members
 func (sc *SessionContext) SendGroupTextMessage(group Group, text string, sendMsgChan chan<- Message) (tms []GroupTextMessage, err error) {
 

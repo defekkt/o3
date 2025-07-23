@@ -7,6 +7,8 @@ package o3
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -40,6 +42,45 @@ func parseEchoPkt(buf *bytes.Buffer) (ep echoPacket) {
 	ep.Counter = parseUint64(buf)
 
 	return
+}
+
+func parseFileMessage(buf *bytes.Buffer) fileMessageBody {
+    stripPadding(buf)
+    
+    var fileData map[string]interface{}
+    json.Unmarshal(buf.Bytes(), &fileData)
+    
+    // Extract basic fields
+    var blobID [16]byte
+    var encKey [32]byte
+    
+    if bStr, ok := fileData["b"].(string); ok {
+        blob, _ := hex.DecodeString(bStr)
+        copy(blobID[:], blob)
+    }
+    
+    if kStr, ok := fileData["k"].(string); ok {
+        key, _ := hex.DecodeString(kStr)
+        copy(encKey[:], key)
+    }
+    
+    mimeType, _ := fileData["m"].(string)
+    filename, _ := fileData["n"].(string)
+    size, _ := fileData["s"].(float64)
+    
+    extra := make(map[string]interface{})
+    if x, ok := fileData["x"].(map[string]interface{}); ok {
+        extra = x
+    }
+    
+    return fileMessageBody{
+        blobID:        blobID,
+        encryptionKey: encKey,
+        mimeType:      mimeType,
+        filename:      filename,
+        size:          uint32(size),
+        extra:         extra,
+    }
 }
 
 func parseDeliveryReceipt(buf *bytes.Buffer) deliveryReceiptMessageBody {

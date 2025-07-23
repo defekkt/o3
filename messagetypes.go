@@ -171,6 +171,10 @@ func (tn TypingNotificationMessage) Serialize() []byte {
 	return serializeTypingNotification(tn).Bytes()
 }
 
+func (fm FileMessage) Serialize() []byte {
+    return serializeFileMsg(fm).Bytes()
+}
+
 //--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<----
 
 //ImageMessage represents an image message as sent e2e encrypted to other threema users
@@ -311,6 +315,91 @@ type TypingNotificationMessage struct {
 
 type typingNotificationBody struct {
 	OnOff byte
+}
+
+// NewTypingNotificationMessage returns a TypingNotificationMessage ready to be sent.
+func NewTypingNotificationMessage(sc *SessionContext, recipient string, onOff bool) (TypingNotificationMessage, error) {
+	recipientID := NewIDString(recipient)
+
+	var onOffByte byte
+	if onOff {
+		onOffByte = 1
+	} else {
+		onOffByte = 0
+	}
+
+	tn := TypingNotificationMessage{
+		messageHeader{
+			sender:    sc.ID.ID,
+			recipient: recipientID,
+			id:        NewMsgID(),
+			time:      time.Now(),
+			pubNick:   sc.ID.Nick,
+		},
+		typingNotificationBody{OnOff: onOffByte},
+	}
+	return tn, nil
+}
+
+//--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<----
+type FileMessage struct {
+    messageHeader
+    fileMessageBody
+}
+
+type fileMessageBody struct {
+    blobID          [16]byte
+    thumbnailBlobID [16]byte  // Optional
+    encryptionKey   [32]byte
+    mimeType        string
+    filename        string
+    size            uint32
+    extra           map[string]interface{} // For duration, etc.
+}
+
+
+
+// FileName returns the filename
+func (fm FileMessage) FileName() string {
+    return fm.filename
+}
+
+// MimeType returns the MIME type
+func (fm FileMessage) MimeType() string {
+    return fm.mimeType
+}
+
+// Size returns the file size in bytes
+func (fm FileMessage) Size() uint32 {
+    return fm.size
+}
+
+// Duration returns duration for audio/video files
+func (fm FileMessage) Duration() float64 {
+    if d, ok := fm.extra["d"].(float64); ok {
+        return d
+    }
+    return 0
+}
+
+// BlobID returns the blob ID
+func (fm FileMessage) BlobID() [16]byte {
+    return fm.blobID
+}
+
+// EncryptionKey returns the encryption key
+func (fm FileMessage) EncryptionKey() [32]byte {
+    return fm.encryptionKey
+}
+
+// ThumbnailBlobID returns the thumbnail blob ID
+func (fm FileMessage) ThumbnailBlobID() [16]byte {
+    return fm.thumbnailBlobID
+}
+
+// Extra returns the extra data map
+func (fm FileMessage) Extra() map[string]interface{} {
+    return fm.extra
 }
 
 //--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<----

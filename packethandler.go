@@ -150,6 +150,10 @@ func (sc *SessionContext) handleMessagePacket(mp messagePacket) (Message, error)
 		message = AudioMessage{
 			messageHeader:    newMsgHdrFromPkt(mp),
 			audioMessageBody: parseAudioMessage(buf)}
+	case FILEMESSAGE:
+    	message = FileMessage{
+        messageHeader:   newMsgHdrFromPkt(mp),
+        fileMessageBody: parseFileMessage(buf)}
 	case CONTACT_REQ_PHOTO:
 		message = TextMessage{
 			messageHeader:   newMsgHdrFromPkt(mp),
