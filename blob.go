@@ -3,8 +3,8 @@ package o3
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/tls"
-	"crypto/x509"
+	//"crypto/tls"
+	//"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -21,13 +21,13 @@ var threemaCert = []byte{0x2d, 0x2d, 0x2d, 0x2d, 0x2d, 0x42, 0x45, 0x47, 0x49, 0
 
 // uploadBlob Uploads a blob to the threema servers and returns the assigned blob ID
 func uploadBlob(blob []byte) ([16]byte, error) {
-	CAPool := x509.NewCertPool()
-	CAPool.AppendCertsFromPEM(threemaCert)
+	//CAPool := x509.NewCertPool()
+	//CAPool.AppendCertsFromPEM(threemaCert)
 
-	config := tls.Config{RootCAs: CAPool}
+	//config := tls.Config{RootCAs: CAPool}
 
 	tr := &http.Transport{
-		TLSClientConfig: &config,
+		//TLSClientConfig: &config,
 	}
 	client := &http.Client{Transport: tr}
 
@@ -121,17 +121,19 @@ func encryptAndUploadSym(plainImage []byte) (key [32]byte, ServerID byte, size u
 
 //
 func downloadBlob(blobID [16]byte) ([]byte, error) {
-	CAPool := x509.NewCertPool()
-	CAPool.AppendCertsFromPEM(threemaCert)
+	//CAPool := x509.NewCertPool()
+	//CAPool.AppendCertsFromPEM(threemaCert)
 
-	config := tls.Config{RootCAs: CAPool}
+	//config := tls.Config{RootCAs: CAPool}
 
 	tr := &http.Transport{
-		TLSClientConfig: &config,
+		//TLSClientConfig: &config,
 	}
 	client := &http.Client{Transport: tr}
 
-	url := fmt.Sprintf("https://%.2x.blob.threema.ch/%x", blobID[0], blobID)
+	//url := fmt.Sprintf("https://%.2x.blob.threema.ch/%x", blobID[0], blobID)
+	//url := fmt.Sprintf("https://blob.threema.ch/%x", blobID)
+	url := fmt.Sprintf("https://blobp-%2x.threema.ch/%x", blobID[0], blobID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -193,7 +195,7 @@ func downloadAndDecryptSym(blobID [16]byte, key [32]byte) (plaintext []byte, err
 	nonce[23] = 1
 	plainPicture, success := secretbox.Open(nil, ciphertext, &nonce, &key)
 	if !success {
-		return []byte{}, errors.New("could not decrypt image message")
+		return []byte{}, errors.New("could not decrypt blob")
 	}
 
 	return plainPicture, nil

@@ -357,7 +357,10 @@ type fileMessageBody struct {
     extra           map[string]interface{} // For duration, etc.
 }
 
-
+// GetFileData downloads and decrypts the file content.
+func (fm FileMessage) GetFileData() ([]byte, error) {
+	return downloadAndDecryptSym(fm.blobID, fm.encryptionKey)
+}
 
 // FileName returns the filename
 func (fm FileMessage) FileName() string {
