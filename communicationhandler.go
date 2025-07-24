@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-var errDuplicateConn = errors.New("duplicate connection Error: this connection was ursurped by another client")
-
+// ErrDuplicateConn is returned when the connection is usurped by another client.
+var ErrDuplicateConn = errors.New("duplicate connection Error: this connection was ursurped by another client")
 func receiveHelper(reader io.Reader, n int) *bytes.Buffer {
 
 	buf := make([]byte, n)
@@ -322,8 +322,8 @@ func (sc *SessionContext) receivePacket(reader io.Reader) (pkt interface{}, err 
 	}
 
 	pkt = sc.handleClientServerMsg(bytes.NewBuffer(buf))
-	if pkt == errDuplicateConn {
-		return nil, errDuplicateConn
+	if pkt == ErrDuplicateConn {
+		return nil, ErrDuplicateConn
 	}
 	return pkt, nil
 }
