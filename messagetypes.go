@@ -18,11 +18,14 @@ const (
 	TEXTMESSAGE             MsgType = 0x01 //indicates a text message
 	IMAGEMESSAGE            MsgType = 0x02 //indicates a image message
 	LOCATIONMESSAGE         MsgType = 0x10 //indicates a location message
+	VIDEOMESSAGE            MsgType = 0x13 //indicates a (deprecated) video message
 	AUDIOMESSAGE            MsgType = 0x14 //indicates a audio message
 	POLL_CREATE_MESSAGE     MsgType = 0x15 //indicates a poll message
 	POLL_VOTE_MESSAGE       MsgType = 0x16 //indicates a poll message
 	FILEMESSAGE             MsgType = 0x17 //indicates a file message
-	CONTACT_REQ_PHOTO       MsgType = 0x1A //indicates a text message
+	CONTACT_SET_PHOTO       MsgType = 0x18 //indicates a contact set a new profile picture
+	CONTACT_DELETE_PHOTO    MsgType = 0x19 //indicates a contact deleted their profile picture
+	CONTACT_REQ_PHOTO       MsgType = 0x1A //indicates a profile picture request
 	GROUPTEXTMESSAGE        MsgType = 0x41 //indicates a group text message
 	GROUPLOCATIONMESSAGE    MsgType = 0x42 //indicates a group image message
 	GROUPIMAGEMESSAGE       MsgType = 0x43 //indicates a group image message
@@ -303,6 +306,25 @@ func (am *AudioMessage) SetAudioData(filename string, sc SessionContext) error {
 //Serialize returns a fully serialized byte slice of an AudioMessage
 func (am AudioMessage) Serialize() []byte {
 	return serializeAudioMsg(am).Bytes()
+}
+
+//--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<----
+
+// UnknownMessage represents a message whose type this library does not decode
+// (e.g. contact profile picture updates, polls, reactions or edit/delete
+// messages). It has already been acknowledged to the server and carries the raw
+// payload so that applications can ignore or inspect it.
+type UnknownMessage struct {
+	messageHeader
+	// Type is the e2e message type byte
+	Type MsgType
+	// Payload is the message body following the type byte (still padded)
+	Payload []byte
+}
+
+// Serialize returns the type byte followed by the raw payload
+func (um UnknownMessage) Serialize() []byte {
+	return append([]byte{byte(um.Type)}, um.Payload...)
 }
 
 //--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<--------8<----

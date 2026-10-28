@@ -35,7 +35,7 @@ func pingPong(t *testing.T,
 		t.Fatal(errors.Wrap(err, "context couldnt run"))
 	}
 
-	if err := ctx.SendTextMessage(remoteID, testMsg, sendChan); err != nil {
+	if _, err := ctx.SendTextMessage(remoteID, testMsg, sendChan); err != nil {
 		t.Fatal(errors.Wrapf(err, "%s: couldn't send her message", ctx.ID.String()))
 	}
 	t.Logf("%s send message", ctx.ID.String())
@@ -56,7 +56,7 @@ func pingPong(t *testing.T,
 				continue
 			}
 		default:
-			t.Log("unahndled message Type: %T", msg)
+			t.Logf("unahndled message Type: %T", msg)
 		}
 	}
 }

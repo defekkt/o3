@@ -11,8 +11,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"encoding/hex"
-
 	"golang.org/x/crypto/nacl/box"
 )
 
@@ -129,13 +127,21 @@ func (sc *SessionContext) handleClientServerMsg(buf *bytes.Buffer) interface{} {
 }
 
 //handleMessagePacket parses a messagePacket and returns the according Message type (ImageMessage, TextMessage etc.)
-func (sc *SessionContext) handleMessagePacket(mp messagePacket) (Message, error) {
+func (sc *SessionContext) handleMessagePacket(mp messagePacket) (message Message, err error) {
 	// DEBUG
 	//fmt.Print(hex.Dump(mp.Plaintext))
 
+	// The parse helpers panic on short or malformed payloads; turn that into an
+	// error so a single bad message cannot take down the receive loop.
+	defer func() {
+		if r := recover(); r != nil {
+			message = nil
+			err = handlerPanicHandler("handleMessagePacket", r)
+		}
+	}()
+
 	buf := bytes.NewBuffer(mp.Plaintext)
 
-	var message Message
 	mt := parseMessageType(buf)
 	switch mt {
 	case TEXTMESSAGE:
@@ -151,13 +157,9 @@ func (sc *SessionContext) handleMessagePacket(mp messagePacket) (Message, error)
 			messageHeader:    newMsgHdrFromPkt(mp),
 			audioMessageBody: parseAudioMessage(buf)}
 	case FILEMESSAGE:
-    	message = FileMessage{
-        messageHeader:   newMsgHdrFromPkt(mp),
-        fileMessageBody: parseFileMessage(buf)}
-	case CONTACT_REQ_PHOTO:
-		message = TextMessage{
+		message = FileMessage{
 			messageHeader:   newMsgHdrFromPkt(mp),
-			textMessageBody: parseTextMessage(buf)}
+			fileMessageBody: parseFileMessage(buf)}
 	case GROUPTEXTMESSAGE:
 		message = GroupTextMessage{
 			groupMessageHeader: parseGroupMessageHeader(buf),
@@ -185,7 +187,6 @@ func (sc *SessionContext) handleMessagePacket(mp messagePacket) (Message, error)
 			messageHeader:                    newMsgHdrFromPkt(mp),
 			groupManageSetMembersMessageBody: parseGroupManageSetMembersMessage(buf)}
 	case GROUPMEMBERLEFTMESSAGE:
-		fmt.Println(hex.Dump(buf.Bytes()))
 		message = GroupMemberLeftMessage{
 			messageHeader:      newMsgHdrFromPkt(mp),
 			groupMessageHeader: parseGroupMessageHeader(buf)}
@@ -198,9 +199,13 @@ func (sc *SessionContext) handleMessagePacket(mp messagePacket) (Message, error)
 			messageHeader:          newMsgHdrFromPkt(mp),
 			typingNotificationBody: parseTypingNotification(buf)}
 	default:
-		fmt.Printf("\n%2x\n", buf)
-		fmt.Printf("\n%s\n", buf)
-		return nil, fmt.Errorf("o3: unknown MessageType: %d", mt)
+		// Includes CONTACT_SET_PHOTO, CONTACT_DELETE_PHOTO, CONTACT_REQ_PHOTO,
+		// locations, polls, reactions, edit/delete, etc. The packet has already
+		// been acknowledged, so hand it to the application without an error.
+		message = UnknownMessage{
+			messageHeader: newMsgHdrFromPkt(mp),
+			Type:          mt,
+			Payload:       buf.Bytes()}
 	}
 	return message, nil
 }

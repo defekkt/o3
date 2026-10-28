@@ -100,13 +100,22 @@ func (sc *SessionContext) Run() (chan<- Message, <-chan ReceivedMsg, error) {
 	return sc.sendMsgChan.In, sc.receiveMsgChan.Out, nil
 }
 
+// sendError reports err on ErrorChan without blocking, so that an application
+// which does not drain the channel cannot stall the receive loop.
+func (sc *SessionContext) sendError(err error) {
+	select {
+	case sc.ErrorChan <- err:
+	default:
+	}
+}
+
 func (sc *SessionContext) receiveLoop() {
 	defer sc.connection.Close()
 	//recv:
 	for {
 		pktIntf, err := sc.receivePacket(sc.connection)
 		if err != nil {
-			sc.ErrorChan <- err
+			sc.sendError(err)
 			sc.receiveMsgChan.In <- ReceivedMsg{
 				Msg: nil,
 				Err: err,
@@ -145,11 +154,11 @@ func (sc *SessionContext) sendLoop() {
 		if r := recover(); r != nil {
 			switch t := r.(type) {
 			case error:
-				sc.ErrorChan <- t
+				sc.sendError(t)
 			case string:
-				sc.ErrorChan <- errors.New(t)
+				sc.sendError(errors.New(t))
 			default:
-				sc.ErrorChan <- fmt.Errorf("An unknown error has occured: %v", r)
+				sc.sendError(fmt.Errorf("An unknown error has occured: %v", r))
 			}
 		}
 	}()
